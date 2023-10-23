@@ -1,3 +1,5 @@
+// ignore_for_file: use_build_context_synchronously
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -18,6 +20,7 @@ class _BudgetedIncomeTabState extends State<BudgetedIncomeTab> {
   List<TableRow> tableRows = [];
 
   Map<String, double> expensesByCategory = {};
+  late int _totalAmount = 0;
 
   void fetchDataBasedOnDuration(String duration) async {
     try {
@@ -29,7 +32,7 @@ class _BudgetedIncomeTabState extends State<BudgetedIncomeTab> {
 
         // Construct the Firestore collection path based on the user ID and the appropriate collection name
         String collectionPath =
-            'users/$userId/expenses'; // Change 'expenses' to the appropriate collection name where you store the data
+            'expenses'; // Change 'expenses' to the appropriate collection name where you store the data
 
         // Fetch data from Firestore
         QuerySnapshot querySnapshot =
@@ -51,12 +54,14 @@ class _BudgetedIncomeTabState extends State<BudgetedIncomeTab> {
           return;
         }
 
+        print(querySnapshot.docs);
+
         Map<String, double> expensesByCategory = {};
         for (var doc in querySnapshot.docs) {
           double amount = doc['amount'] ?? 0.0;
-          String category = doc['category'] ?? 'Unknown';
-          DateTime createdAt = doc['createdAt'].toDate();
-          if (createdAt.isAfter(startDate)) {
+          String category = doc['categories'] ?? 'Unknown';
+          DateTime? createdAt = DateTime.tryParse(doc['createdAt']);
+          if (createdAt!.isAfter(startDate)) {
             if (expensesByCategory.containsKey(category)) {
               expensesByCategory[category] =
                   expensesByCategory[category]! + amount;
@@ -66,36 +71,41 @@ class _BudgetedIncomeTabState extends State<BudgetedIncomeTab> {
           }
         }
 
+        print(expensesByCategory.toString());
+
         // Now you have the total expenses for each category within the selected duration in the 'expensesByCategory' map.
 
-        // Update the table with the fetched data
-        // expensesByCategory.forEach((category, totalAmount) {
-        //   expenseRows.add(
-        //     TableRow(
-        //       children: [
-        //         Padding(
-        //           padding: const EdgeInsets.all(8.0),
-        //           child: Text(category),
-        //         ),
-        //         Padding(
-        //           padding: const EdgeInsets.all(8.0),
-        //           child: Text(totalAmount.toStringAsFixed(2)), // Display the total amount rounded to 2 decimal places
-        //         ),
-        //         const Padding(
-        //           padding: EdgeInsets.all(8.0),
-        //           child: Text(''), // Placeholder for description (if required)
-        //         ),
-        //       ],
-        //     ),
-        //   );
-        // });
+        final expenseRows = <TableRow>[];
 
-        // setState(() {
-        //   tableRows = expenseRows;
-        // });
+        // Update the table with the fetched data
+        expensesByCategory.forEach((category, totalAmount) {
+          _totalAmount += totalAmount.round();
+          expenseRows.add(
+            TableRow(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Text(category),
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Text(totalAmount.toStringAsFixed(
+                      2)), // Display the total amount rounded to 2 decimal places
+                ),
+                const Padding(
+                  padding: EdgeInsets.all(8.0),
+                  child: Text(''), // Placeholder for description (if required)
+                ),
+              ],
+            ),
+          );
+        });
+
+        setState(() {
+          tableRows = expenseRows;
+        });
 
         // Display a Snackbar to inform the user that data has been fetched.
-        // ignore: use_build_context_synchronously
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text("Wait while we prepared your $duration expense budget"),
         ));
@@ -107,8 +117,8 @@ class _BudgetedIncomeTabState extends State<BudgetedIncomeTab> {
       }
     } catch (error) {
       // Handle any errors that might occur during fetching data.
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text("Error fetching data. Please try again later."),
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text("Error fetching data. Please try again later. $error"),
       ));
     }
   }
@@ -116,6 +126,7 @@ class _BudgetedIncomeTabState extends State<BudgetedIncomeTab> {
   void addTableRow() {
     List<TableRow> expenseRows = [];
     expensesByCategory.forEach((category, totalAmount) {
+      _totalAmount += totalAmount.round();
       expenseRows.add(
         TableRow(
           children: [
@@ -136,7 +147,6 @@ class _BudgetedIncomeTabState extends State<BudgetedIncomeTab> {
         ),
       );
     });
-
     setState(() {
       tableRows = expenseRows;
     });
@@ -326,11 +336,11 @@ class _BudgetedIncomeTabState extends State<BudgetedIncomeTab> {
                             ),
                           ),
                         ),
-                        const Padding(
-                          padding: EdgeInsets.all(8.0),
+                        Padding(
+                          padding: const EdgeInsets.all(8.0),
                           child: Text(
-                            'Total Amount',
-                            style: TextStyle(
+                            _totalAmount.toString(),
+                            style: const TextStyle(
                               fontWeight: FontWeight.bold,
                             ),
                           ),

@@ -89,7 +89,7 @@ class _SignInScreenState extends State<SignInScreen> {
                 ),
                 const SizedBox(height: 20.0),
                 const Text(
-                  'Sign In ',
+                  'Login ',
                   style: TextStyle(
                     fontSize: 24.0,
                     fontWeight: FontWeight.bold,
@@ -152,7 +152,7 @@ class _SignInScreenState extends State<SignInScreen> {
                   crossAxisAlignment: CrossAxisAlignment.center,
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Text('Already have an account?'),
+                    const Text('Dont have an account?'),
                     TextButton(
                       onPressed: () {
                         Navigator.push(
@@ -160,7 +160,7 @@ class _SignInScreenState extends State<SignInScreen> {
                           MaterialPageRoute(builder: (_) => const SignUpScreen()),
                         );
                       },
-                      child: const Text("Sign Up"),
+                      child: const Text("Register"),
                     ),
                   ],
                 ),

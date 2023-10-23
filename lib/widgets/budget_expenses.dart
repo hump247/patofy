@@ -1,3 +1,5 @@
+// ignore_for_file: use_build_context_synchronously, library_private_types_in_public_api
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -70,42 +72,101 @@ class _BudgetedExpensesTabState extends State<BudgetedExpensesTab> {
       ));
     } catch (error) {
       // Handle errors
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text("Error fetching data. Please try again later."),
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text("Error fetching data. Please try again later. $error"),
       ));
-
-      
     }
   }
-  
+
   void addBudgetToFirestore() async {
     try {
       // Get the current user from Firebase Authentication
       User? user = FirebaseAuth.instance.currentUser;
 
-      if (user != null) {
-        String userId = user.uid;
+      // Showing the Bottom Sheet Bar For New Category Insertions....
+      showBottomSheet(
+        backgroundColor: Colors.white,
+        enableDrag: true,
+        context: context,
+        builder: (BuildContext context) {
+          final category = TextEditingController();
+          final suggestedBudget = TextEditingController();
+          // Please Enter The New Exxpense Budget To continue
 
-        // Construct the Firestore collection path for the new "budgets" collection
-        String collectionPath = 'users/$userId/budgets'; // Change 'budgets' to the appropriate collection name
+          return ListView(
+            padding: const EdgeInsets.all(16),
+            shrinkWrap: true,
+            children: [
+              const Text(
+                'Add New Expense',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              ListTile(
+                leading: const Icon(Icons.category_outlined),
+                title: TextField(
+                  controller: category,
+                  keyboardType: TextInputType.name,
+                  decoration: const InputDecoration(hintText: 'Category Name'),
+                ),
+              ),
+              ListTile(
+                leading: const Icon(Icons.attach_money_rounded),
+                title: TextField(
+                  keyboardType: TextInputType.number,
+                  decoration:
+                      const InputDecoration(hintText: 'Suggested Budget'),
+                  controller: suggestedBudget,
+                ),
+              ),
+              const SizedBox(
+                height: 20,
+              ),
+              ElevatedButton(
+                onPressed: () async {
+                  expensesByCategory[category.text] = double.parse(suggestedBudget.text);
 
-          // Create a new Firestore collection "budgets" and add data
-        for (var entry in expensesByCategory.entries) {
-          String category = entry.key;
-          double suggestedBudget = entry.value;
+                  if (user != null) {
+                    String userId = user.uid;
 
-          DateTime createdAt = DateTime.now();
+                    // Construct the Firestore collection path for the new "budgets" collection
+                    String collectionPath =
+                        'users/$userId/budgets'; // Change 'budgets' to the appropriate collection name
 
-          await FirebaseFirestore.instance.collection(collectionPath).add({
-            'category': category,
-            'suggestedBudget': suggestedBudget,
-            'createdAt': createdAt,
-            'createdBy': userId,
-          });
-        }
+                    // Create a new Firestore collection "budgets" and add data
+                    for (var entry in expensesByCategory.entries) {
+                      String category = entry.key;
+                      double suggestedBudget = entry.value;
 
-        print("addedd ");
-      }
+                      DateTime createdAt = DateTime.now();
+
+                      await FirebaseFirestore.instance
+                          .collection(collectionPath)
+                          .add({
+                        'category': category,
+                        'suggestedBudget': suggestedBudget,
+                        'createdAt': createdAt,
+                        'createdBy': userId,
+                      });
+
+                      // Added To The Collections Of Expenses....
+
+                    }
+                  }
+                  // Removing The bottom Sheet....
+                  Navigator.pop(context);
+                },
+                style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red,
+                    fixedSize: const Size(double.maxFinite - 20, 50)),
+                child: const Text(
+                  'Add Expense',
+                  style: TextStyle(color: Colors.white),
+                ),
+              )
+            ],
+          );
+        },
+      );
     } catch (error) {
       print('Error adding budget to Firestore: $error');
     }
@@ -114,16 +175,16 @@ class _BudgetedExpensesTabState extends State<BudgetedExpensesTab> {
   bool isWithinDuration(DateTime date, String duration) {
     DateTime currentDate = DateTime.now();
     if (duration == '1 Month') {
-      DateTime oneMonthAgo = currentDate.subtract(Duration(days: 30));
+      DateTime oneMonthAgo = currentDate.subtract(const Duration(days: 30));
       return date.isAfter(oneMonthAgo);
     } else if (duration == '3 Months') {
-      DateTime threeMonthsAgo = currentDate.subtract(Duration(days: 90));
+      DateTime threeMonthsAgo = currentDate.subtract(const Duration(days: 90));
       return date.isAfter(threeMonthsAgo);
     } else if (duration == '6 Months') {
-      DateTime sixMonthsAgo = currentDate.subtract(Duration(days: 180));
+      DateTime sixMonthsAgo = currentDate.subtract(const Duration(days: 180));
       return date.isAfter(sixMonthsAgo);
     } else if (duration == '12 Months') {
-      DateTime oneYearAgo = currentDate.subtract(Duration(days: 365));
+      DateTime oneYearAgo = currentDate.subtract(const Duration(days: 365));
       return date.isAfter(oneYearAgo);
     }
     return false;
@@ -215,7 +276,7 @@ class _BudgetedExpensesTabState extends State<BudgetedExpensesTab> {
                       ),
                     ),
                     //three months duration
-                     Padding(
+                    Padding(
                       padding: const EdgeInsets.all(4.0),
                       child: Material(
                         child: ActionChip(
@@ -239,7 +300,7 @@ class _BudgetedExpensesTabState extends State<BudgetedExpensesTab> {
                     ),
 
                     //six months duration
-                     Padding(
+                    Padding(
                       padding: const EdgeInsets.all(4.0),
                       child: Material(
                         child: ActionChip(
@@ -263,7 +324,7 @@ class _BudgetedExpensesTabState extends State<BudgetedExpensesTab> {
                     ),
 
                     //twelve months duration
-                     Padding(
+                    Padding(
                       padding: const EdgeInsets.all(4.0),
                       child: Material(
                         child: ActionChip(

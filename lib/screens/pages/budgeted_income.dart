@@ -1,90 +1,91 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:fl_chart/fl_chart.dart';
 
-import '../../constants/colors.dart';
-import '../../widgets/budget_expenses.dart';
-import '../../widgets/budget_income.dart';
-
-class BudgetPage extends StatefulWidget {
-  const BudgetPage({super.key, });
-
+class Chart extends StatefulWidget {
   @override
-  State<BudgetPage> createState() => _BudgetPageState();
+  _ExpenseTrackerState createState() => _ExpenseTrackerState();
 }
 
-class _BudgetPageState extends State<BudgetPage> with SingleTickerProviderStateMixin{
-  TextEditingController dateController1 = TextEditingController();
-  TextEditingController dateController2 = TextEditingController();
-
-DateTime startDate = DateTime.now().add(const Duration(days: 1));
-
-
-
-
-
-  late TabController _tabController;
-
-
-
-   @override
-  void initState() {
-    super.initState();
-    _tabController = TabController(length: 2, vsync: this,);
-  }
+class _ExpenseTrackerState extends State<Chart> {
+  double totalIncome = 0;
+  double totalExpense = 0;
 
   @override
-  void dispose() {
-    // dateController1.dispose();
-    // dateController2.dispose();
-     _tabController.dispose();
-    super.dispose();
+  void initState() {
+    super.initState();
+    _calculateIncomeExpenseBalance();
+  }
+
+  void _calculateIncomeExpenseBalance() async {
+    try {
+      final querySnapshot =
+      await FirebaseFirestore.instance.collection('transactions').get();
+
+      if (querySnapshot != null) {
+        for (final QueryDocumentSnapshot<Map<String, dynamic>> document
+        in querySnapshot.docs) {
+          final Map<String, dynamic>? data = document.data();
+          bool isIncome = data?['isIncome'] ?? false;
+
+          if (isIncome) {
+            totalIncome += data?['amount'] ?? 0.0;
+          } else {
+            totalExpense += data?['amount'] ?? 0.0;
+          }
+        }
+
+        setState(() {});
+      }
+    } catch (e) {
+      print('Error fetching data: $e');
+    }
+  }
+
+  Widget buildExpensePieChart() {
+    final List<PieChartSectionData> pieChartData = [
+      PieChartSectionData(
+        color: const Color(0xFF5FD0FF),
+        value: totalIncome,
+        title: 'Income',
+        radius: 40,
+        titleStyle: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+      ),
+      PieChartSectionData(
+        color: const Color(0xFFFF5A5A),
+        value: totalExpense,
+        title: 'Expense',
+        radius: 40,
+        titleStyle: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+      ),
+    ];
+
+    return PieChart(
+      PieChartData(
+        sections: pieChartData,
+        borderData: FlBorderData(show: false),
+        centerSpaceRadius: 0,
+        sectionsSpace: 0,
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    return DefaultTabController(
-      length: 2,
-      child: Scaffold(
-          backgroundColor: Styles.primaryWhiteColor,
-          //abb bar design
-          appBar: AppBar(
-            title: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.only(top:14.0),
-            child: Text(
-            "Create Budget",
-            style: TextStyle(
-              color: Styles.primaryRedColor,
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          ),
-        ],
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Expense Tracker'),
       ),
-            centerTitle: false,
-            backgroundColor: Styles.primaryWhiteColor,
-            iconTheme: IconThemeData(color: Styles.primaryWhiteColor),
-            bottom: TabBar(
-              isScrollable: false,
-              indicatorColor: Styles.primaryRedColor,
-              labelColor: Styles.primaryRedColor,
-              unselectedLabelColor: Styles.primaryBlackColor,
-              tabs: const [
-                Tab(text: 'Income Budget'),
-                Tab(text: 'Expense Budget')
-              ]
-            
-            ),
-          ),
-          body: const TabBarView(
-            
-            children: [BudgetedIncomeTab(), BudgetedExpensesTab()],
-          ),
-          ),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text('Expense Distribution'),
+            SizedBox(height: 20),
+            buildExpensePieChart(),
+          ],
+        ),
+      ),
     );
-        
   }
 }
